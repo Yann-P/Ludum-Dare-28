@@ -1,0 +1,60 @@
+body {
+	background: rgb(40, 32, 30);
+	font-family: arial;
+	color: #876;
+	text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.5);
+	font-size: 13px;
+}
+
+#notes {
+	margin-top: 10px;
+}
+
+a {
+	color: white;
+	text-decoration: none
+}
+
+#preload {
+	display: none;
+}
+
+.container {
+	width: 805px;
+	margin: 0 auto;
+}
+
+#game {
+	background: none;
+	border: 2px solid black;
+	position: relative;
+	height: 600px;
+	width: 800px;
+}
+
+#gameover, #entities {
+	height: 600px;
+	width: 800px;
+	position: absolute;
+}
+
+#gameover {
+	background: url('img/gameover.png');
+	display: none;
+}
+
+#entities {
+	
+}
+
+#mute {
+	position: absolute;
+	width: 21px;
+	height: 27px;
+	cursor: pointer;
+	right: 10px;
+	top: 10px;
+	background: url('img/loud.png');
+	opacity: .5;
+}
+#mute:hover { opacity: 1; }

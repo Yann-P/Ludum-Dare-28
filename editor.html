@@ -1,0 +1,245 @@
+<html>
+<head>
+	<title>Handle with care editor</title>
+	<meta charset="utf-8">
+	<style type="text/css" href="lib/editor/jquery-ui.css"></style>
+	<style type="text/css">	
+	html {
+		-webkit-user-select: none;
+		font-family: monospace;
+		color: white;
+		background: rgb(40, 32, 30);
+	}
+	body {
+		margin: 0
+	}
+	a {
+		color: white;
+	}
+	#test {
+		
+	}
+	table {
+		border-collapse: collapse;
+		border: none;
+	}
+	tr {
+		vertical-align: top;
+	}
+	#level {
+		width:800px;
+		height:600px;
+		background:rgb(40, 32, 30);
+		border: 1px solid black
+	}
+	.element {
+		position: absolute;
+		height: 30px;
+		opacity: 0.7;
+	}
+	#selectors {
+		
+	}
+	.selector button {
+		height: 30px;
+	}
+	.selector img {
+		height: 30px;
+		width: 30px;
+		vertical-align: middle;
+	}
+	.selector.selected {
+		border: 2px solid red;
+	}
+	</style>
+	<script type="text/javascript" src="lib/editor/jquery.js"></script>
+	<script type="text/javascript" src="lib/editor/jquery-ui.js"></script>
+	<script type="text/javascript" src="lib/base64.js"></script>
+	<script type="text/javascript">
+	var platforms = []
+	var selectedElt = 'platform'
+	var grid = 10
+
+	function getMapElements(type) {
+		return $('#level .element[data-elt="' + type + '"]')
+	}
+
+	function getElementWidth($e) {
+		return parseInt($e.css('width'))
+	}
+
+	function getElementPos($e) {
+		return [parseInt($e.css('left')), parseInt($e.css('top'))]
+	}
+
+	function getResult() {
+		var result = { playerPos:[], platforms: [], monsters: {bomb:[], bowman: [], autospawn: []}, doors: [] }
+
+		var $door = getMapElements('door')
+		if($door.length != 1)
+			return alert("One door is required")
+		var $player = getMapElements('player')
+		if($player.length != 1)
+			return alert("Player is required")
+		var doorPos = getElementPos($door)
+
+		var platforms = getMapElements('platform')
+		platforms.each(function() {
+			var platform = $(this)
+			var pos = getElementPos(platform)
+			result.platforms.push([pos[0], pos[1], getElementWidth(platform)])
+		})
+
+		var bombs = getMapElements('bomb')
+		bombs.each(function() {
+			var pos = getElementPos($(this))
+			pos[1] -= 50
+			result.monsters.bomb.push(pos)
+		})
+
+		var bomb_autospawns = getMapElements('bomb_autospawn')
+		bomb_autospawns.each(function() {
+			var bomb_autospawn = $(this)
+			var pos = getElementPos(bomb_autospawn)
+			result.monsters.autospawn.push(['bomb', pos[0], pos[1]-50, +bomb_autospawn.attr('data-timer')*1000])
+		})
+
+		var bowmans = getMapElements('bowman')
+		bowmans.each(function() {
+			var pos = getElementPos($(this))
+			pos[1] -= 50
+			result.monsters.bowman.push(pos)
+		})
+
+
+
+		result.playerPos = getElementPos($player)
+		result.playerPos[1] -= 30
+		result.doors.push([doorPos[0], doorPos[1] + 30, 'test'])
+	
+		console.log(JSON.stringify(result))
+		return result;
+	}
+
+	function createMapElement(type, x, y) {
+		
+		if(type == 'player' && getMapElements('player').length == 1)
+			return alert("Player position is already set")
+
+		if(type == 'door' && getMapElements('door').length == 1)
+			return alert("Door is already set")	
+
+		var $e = $('<img>')
+			.attr('src', 'img/editor/' + type + '.png')
+			.addClass('element')
+			.attr('data-elt', type)
+			.css({'top': y - y%grid , 'left': x - x%grid, width: 30,
+				height: 30})
+			.draggable({ grid: [ grid, grid ] })
+			.css('position', 'absolute')
+			.appendTo('#level')
+
+		if(type == 'bomb_autospawn')
+			$e.attr('data-timer', 5).attr('title', 'Right click to set spawn interval')
+		if(type == 'platform')
+			$e.attr('title', 'Right click to set width')
+
+
+		return $e
+	}
+
+	$(document).ready(function() {
+
+		$('.selector').click(function() {
+			$('.selector').removeClass('selected');
+			$(this).addClass('selected');
+			selectedElt = this.getAttribute('data-elt')
+		})
+
+		$('#test').click(function() {
+			var data = B64.encode(JSON.stringify(getResult()))
+			window.open('index.php?level_data=' + data)
+		})
+
+		$('#level').mousemove(function(e) {
+			$('#coords').text(e.pageX + '  ' + e.pageY)
+		}).click(function(e) {
+			if(e.pageY>600) return;
+			createMapElement(selectedElt, e.pageX, e.pageY)
+		}).contextmenu(function(e) {
+			e.preventDefault()
+		})
+		$('.element').live('contextmenu', function(e) {
+			e.preventDefault()
+			if($(this).attr('data-disabled'))
+				return
+			var type = $(this).attr('data-elt')
+			if(type == 'platform') {
+				var width = prompt('Set platform width', parseInt($(this).css('width')))
+				if(isNaN(width) || width < 10 || width > 800)
+					return alert("Invalid size")
+				$(this).css('width', width)
+			} else if(type == 'bomb_autospawn') {
+				var interval = prompt('Set spawner timer (seconds)', +$(this).attr('data-timer'))
+				if(isNaN(interval) || interval < 1 || interval > 20)
+					return alert("Must be between 1s and 20s")
+				$(this).attr('data-timer', interval)
+			}
+		}).live('mouseenter mouseleave', function(e) {
+			var pos = $(this).position() 
+			if(+pos.left > 800 || +pos.top > 590) {
+				$(this).remove()
+				e.stopPropagation()
+			}
+		})
+
+		var bottomPlatform = createMapElement('platform', 0, 590)
+		bottomPlatform.css('width', 800)	
+		bottomPlatform.draggable('disable')
+		bottomPlatform.attr('data-disabled', 'true')
+	});
+
+	
+	
+    window.onbeforeunload = function (e) {
+        e = e || window.event;
+        msg = '** This level will be LOST ! **\n You cannot load a level in the editor right now. Finish it :p';
+        if (e) {e.returnValue = msg;}
+        return msg;
+    };
+
+	</script>
+
+</head>
+<body>
+	<table>
+		<tr>
+			<td><div id="level"></div></td>
+			<td>
+				<h1>Handle With Care (LD28) : level editor</h1>
+				<h2>Map elements</h2>
+				<div id="selectors">
+					<div class="selector selected" data-elt="platform"><button><big><b>Platform</b></big></button>(right click : set size)</div>
+					<div class="selector" data-elt="player"><img src="img/editor/player.png"><button>Initial position</button></div>
+					<div class="selector" data-elt="bomb"><img src="img/editor/bomb.png"><button>Bomb</button></div>
+					<div class="selector" data-elt="bomb_autospawn"><img src="img/editor/bomb_autospawn.png"><button>Bomb (autospawn)</button> (right click : set timer)</div>
+					<div class="selector" data-elt="bowman"><img src="img/editor/bowman.png"><button>Archer</button></div>
+					<div class="selector" data-elt="door"><img src="img/editor/door.png"><button>Next level door</button></div>
+				</div>
+				<h2>Playtest</h2>
+				<button id="test">Play your level !</button>
+				<br>
+				<h2>Notes</h2>
+				<ul>
+					<li><b><a href="http://yann-p.fr/contact.php" target="_blank">Send me your level here</a> ! I will add it in the extended version ! </b>Just copy the big URL (index.php?level_data=...) and put it the message field.</li>
+					<li>You can keep this big URL to play your level later.</li>
+					<li>Delete an object : drag it out of the map</li>
+					<li><a href="http://www.ludumdare.com/compo/ludum-dare-28/?action=preview&amp;uid=29641" target="_blank">Original Ludum Dare entry</a></li>
+					<li>Report bugs and typos : <a href="https://twitter.com/Cawrtz" target="_blank">@Cawrtz</a></li>
+				</ul>
+			</td>
+		</tr>
+	</table>
+	<div id="coords"></div>
+</body>
+</html>
