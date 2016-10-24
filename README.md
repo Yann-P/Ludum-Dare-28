@@ -15,6 +15,6 @@ Warning: this is code written for a jam in 48h and it may hurt your eyes ;)
 
 ## Screenshots
 
-![Preview](ld28_1.png?raw=true "Preview")
+![Preview](ld28_1.jpg?raw=true "Preview")
 ![Preview](ld28_2.jpg?raw=true "Preview")
 ![Preview](ld28_3.jpg?raw=true "Preview")
